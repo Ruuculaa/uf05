@@ -1,7 +1,7 @@
-// src/components/AdivinaNumeroGame.jsx
-
 import React, { useState, useEffect } from 'react';
-import JuegoAdivinaNumero from '../clases/juegoAdivinarNumero';
+import JuegoAdivinaNumero from '../classes/JuegoAdivinaNumero';
+import TablaPuntuaciones from './TablaPuntuaciones';
+import { guardarPuntuacion } from '../services/api';
 
 const AdivinaNumeroGame = () => {
   const [valorInput, setValorInput] = useState('');
@@ -9,6 +9,9 @@ const AdivinaNumeroGame = () => {
   const [mensaje, setMensaje] = useState('');
   const [historialIntentos, setHistorialIntentos] = useState([]);
   const [dificultad, setDificultad] = useState('normal');
+  const [nombreJugador, setNombreJugador] = useState('');
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [guardandoPuntuacion, setGuardandoPuntuacion] = useState(false);
 
   // Inicializar el juego
   useEffect(() => {
@@ -35,6 +38,7 @@ const AdivinaNumeroGame = () => {
     setMensaje(nuevoJuego.mensaje);
     setHistorialIntentos([]);
     setValorInput('');
+    setMostrarFormulario(false);
   };
 
   const cambiarDificultad = (e) => {
@@ -60,15 +64,49 @@ const AdivinaNumeroGame = () => {
     setHistorialIntentos([...historialIntentos, nuevoIntento]);
     
     // Procesar el intento
-    juego.intentarAdivinar(numeroIntento);
+    const resultado = juego.intentarAdivinar(numeroIntento);
     setMensaje(juego.mensaje);
     setValorInput('');
+    
+    // Si el juego terminó y se ganó, mostrar formulario para guardar puntuación
+    if (resultado === true) {
+      setMostrarFormulario(true);
+    }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAdivinar();
+    }
+  };
+
+  const guardarResultado = async (e) => {
+    e.preventDefault();
+    
+    if (!nombreJugador.trim()) {
+      alert('Por favor, introduce tu nombre');
+      return;
+    }
+    
+    setGuardandoPuntuacion(true);
+    
+    try {
+      await guardarPuntuacion({
+        nombreJugador: nombreJugador,
+        dificultad: dificultad,
+        intentos: juego.intentos,
+        numeroAdivinado: juego.numeroSecreto,
+        resultado: juego.estadoJuego
+      });
+      
+      setMostrarFormulario(false);
+      setNombreJugador('');
+      alert('¡Puntuación guardada con éxito!');
+    } catch (error) {
+      alert('Error al guardar la puntuación');
+    } finally {
+      setGuardandoPuntuacion(false);
     }
   };
 
@@ -112,10 +150,33 @@ const AdivinaNumeroGame = () => {
         </button>
       </div>
       
+      {mostrarFormulario && (
+        <div className="w-full mb-4 p-4 bg-green-100 rounded">
+          <h3 className="font-bold mb-2">¡Has ganado! Guarda tu puntuación:</h3>
+          <div>
+            <input 
+              type="text" 
+              value={nombreJugador}
+              onChange={(e) => setNombreJugador(e.target.value)}
+              className="w-full p-2 mb-2 border border-gray-300 rounded"
+              placeholder="Tu nombre"
+              required
+            />
+            <button 
+              onClick={guardarResultado} 
+              disabled={guardandoPuntuacion}
+              className="w-full bg-green-600 hover:bg-green-700 text-white p-2 rounded"
+            >
+              {guardandoPuntuacion ? 'Guardando...' : 'Guardar Puntuación'}
+            </button>
+          </div>
+        </div>
+      )}
+      
       {(juego && juego.estadoJuego !== 'jugando') && (
         <button 
           onClick={iniciarNuevoJuego}
-          className="mb-4 bg-green-600 hover:bg-green-700 text-white p-2 rounded w-full"
+          className="mb-4 bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded w-full"
         >
           Jugar de nuevo
         </button>
@@ -148,6 +209,8 @@ const AdivinaNumeroGame = () => {
       <div className="mt-4 w-full text-sm text-gray-600">
         <p>Intentos: {juego ? juego.intentos : 0} / {juego ? juego.maximoIntentos : 10}</p>
       </div>
+      
+      <TablaPuntuaciones dificultad={dificultad} />
     </div>
   );
 };

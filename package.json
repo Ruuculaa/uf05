@@ -44,7 +44,7 @@
   "bugs": {
     "url": "https://github.com/Ruuculaa/uf05/issues"
   },
-  "homepage": "https://github.com/Ruuculaa/uf05#readme",
+  "homepage": "http://localhost:5001/Ruuculaa/uf0",
   "devDependencies": {
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.10"
